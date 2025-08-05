@@ -1,0 +1,158 @@
+import java.util.*;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+
+abstract class participante {
+  protected String Nome;
+  protected int Numero;
+  protected int pontos;
+  protected ImageIcon img;
+
+  public participante(String n, int num, ImageIcon i) {
+    Nome=n; Numero=num; pontos=0; img=i;
+  }
+
+  public abstract void comp();
+
+  public String getNome() { return Nome; }
+  public int get_numero(){return Numero;}
+  public int getpontos(){return pontos;}
+  public ImageIcon get_img() { return img; }
+
+  public void add_pontos(int p){
+    pontos=pontos+p;
+  }
+}
+
+interface Confirma {
+  void conf();
+}
+
+class piloto extends participante implements Confirma {
+  public piloto(String n, int num, ImageIcon i) {
+    super(n,num,i);
+  }
+  public void conf() {
+    System.out.println(Nome+" confirmou pontos "+pontos);
+  }
+  public void comp() {
+    System.out.println(Nome+" correu");
+  }
+}
+
+class pontuacao {
+  private static Map<Integer,Integer> t = new HashMap<>();
+  static {
+    t.put(1,10);
+    t.put(2,6); t.put(3,4);
+    t.put(4,3); t.put(5,2); t.put(6,1);
+  }
+  public static int get_p(int pos) {
+    if(t.containsKey(pos))
+      return t.get(pos);
+    else return 0;
+  }
+}
+
+public class corridaGUI extends JFrame {
+  private ArrayList<piloto> lista = new ArrayList<>();
+  private JTextArea txt;
+
+  public corridaGUI() {
+    setTitle("corrida");
+    setSize(600,500);
+    setDefaultCloseOperation(EXIT_ON_CLOSE);
+    txt=new JTextArea(); txt.setEditable(false);
+    JScrollPane s=new JScrollPane(txt);
+    add(s, BorderLayout.CENTER);
+    JPanel p=new JPanel();
+    JButton b1=new JButton("correr");
+    JButton b2=new JButton("ranking");
+    JButton b3=new JButton("novo");
+    p.add(b1);p.add(b2);p.add(b3);
+    add(p,BorderLayout.SOUTH);
+
+    b1.addActionListener(e -> run());
+    b2.addActionListener(e -> rank());
+    b3.addActionListener(e -> add_p());
+
+    init_p();
+  }
+
+  void init_p(){
+    String[] n = {"Hadassa","Pietra","Aarom","Daniel","Mary Mel"};
+    int[] nums={15,26,31,40,54};
+    lista.clear();
+    for(int i=0;i<n.length;i++) {
+      ImageIcon im=load_img("imagens/"+n[i].toLowerCase()+".png");
+      lista.add(new piloto(n[i],nums[i],im));
+    }
+  }
+
+  void run(){
+    if(lista.size()==0){
+      JOptionPane.showMessageDialog(this,"sem pilotos","erro",0); return;
+    }
+    txt.setText("inicio corrida\n");
+    Collections.shuffle(lista);
+    int idx=1;
+    for(piloto p:lista){
+      p.comp();
+      int pts=pontuacao.get_p(idx);
+      p.add_pontos(pts);
+      p.conf();
+      txt.append(idx+" "+p.getNome()+" (#"+p.get_numero()+") +"+pts+"pts\n");
+      idx++;
+    }
+  }
+
+  void rank(){
+    if(lista.size()==0){
+      JOptionPane.showMessageDialog(this,"sem pilotos","erro",0);
+      return;
+    }
+    lista.sort((x,y)->y.getpontos()-x.getpontos());
+    JPanel pan=new JPanel(new GridLayout(lista.size(),1));
+    for(int i=0;i<lista.size();i++){
+      piloto p=lista.get(i);
+      JLabel lbl=new JLabel((i+1)+"º "+p.getNome()+" - "+p.getpontos()+" pts");
+      lbl.setIcon(p.get_img());
+      pan.add(lbl);
+    }
+    JScrollPane sp=new JScrollPane(pan);
+    sp.setPreferredSize(new Dimension(400,300));
+    JOptionPane.showMessageDialog(this,sp,"Ranking",JOptionPane.PLAIN_MESSAGE);
+  }
+
+  void add_p(){
+    JTextField f1=new JTextField();
+    JTextField f2=new JTextField();
+    Object[] obj={"nome",f1,"num",f2};
+    int r=JOptionPane.showConfirmDialog(this,obj,"novo piloto",2);
+    if(r==0){
+      String nome=f1.getText();
+      String numS=f2.getText();
+      try{
+        int n=Integer.parseInt(numS);
+        ImageIcon img=load_img("imagens/"+nome.toLowerCase()+".png");
+        lista.add(new piloto(nome,n,img));
+        txt.append("adicionado "+nome+" ("+n+")\n");
+      }catch(Exception ex){
+        JOptionPane.showMessageDialog(this,"erro num","erro",0);
+      }
+    }
+  }
+
+  ImageIcon load_img(String path){
+    ImageIcon im=new ImageIcon(path);
+    if(im.getIconWidth()<=0)
+      im=new ImageIcon("imagens/default.png");
+    Image i=im.getImage().getScaledInstance(50,50,1);
+    return new ImageIcon(i);
+  }
+
+  public static void main(String[] args){
+    SwingUtilities.invokeLater(()->{new corridaGUI().setVisible(true);});
+  }
+}
